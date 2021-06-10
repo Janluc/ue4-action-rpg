@@ -37,6 +37,16 @@ class MYPROJECT_API APlayerCharacter : public ACharacter
 	float RightInput;
 
 	void SetStateFromBasicMovement();
+
+	void BasicAttack();
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
+	UAnimMontage* BAttack1;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
+	UAnimMontage* BAttack2;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
+	UAnimMontage* BAttack3;
+	
 	protected:
 
 	/** Called for forwards/backward input */

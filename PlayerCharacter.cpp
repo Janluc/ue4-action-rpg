@@ -54,6 +54,7 @@ void APlayerCharacter::SetupPlayerInputComponent(class UInputComponent* PlayerIn
 	check(PlayerInputComponent);
 	PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &ACharacter::Jump);
 	PlayerInputComponent->BindAction("Jump", IE_Released, this, &ACharacter::StopJumping);
+	PlayerInputComponent->BindAction(("BasicAttack"), IE_Pressed, this, &APlayerCharacter::BasicAttack);
 
 	PlayerInputComponent->BindAxis("MoveForward", this, &APlayerCharacter::MoveForward);
 	PlayerInputComponent->BindAxis("MoveRight", this, &APlayerCharacter::MoveRight);
@@ -140,6 +141,20 @@ void APlayerCharacter::SetStateFromBasicMovement()
 	}
 	else
 		State = Jumping;
+}
+
+void APlayerCharacter::BasicAttack()
+{
+	switch (State)
+	{
+		case Idle: case Walking:
+			PlayAnimMontage(BAttack1);
+			State = Attacking;
+			break;
+
+		default:
+			break;
+	}
 }
 
 void APlayerCharacter::Tick(float DeltaSeconds)
