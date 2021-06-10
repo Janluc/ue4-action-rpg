@@ -36,10 +36,22 @@ class MYPROJECT_API APlayerCharacter : public ACharacter
 	float ForwardInput;
 	float RightInput;
 
+	int32 ComboCounter = 0;
+	bool AttackInputBuffer;
+
 	void SetStateFromBasicMovement();
 
 	void BasicAttack();
 
+	void MidAttack();
+
+	void ChooseComboAttack(int32 Counter);
+
+	void Combo();
+
+	void ResetAttack();
+	void ResetCounter();
+	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
 	UAnimMontage* BAttack1;
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)

@@ -141,6 +141,7 @@ void APlayerCharacter::SetStateFromBasicMovement()
 	}
 	else
 		State = Jumping;
+	StopAnimMontage();
 }
 
 void APlayerCharacter::BasicAttack()
@@ -148,13 +149,63 @@ void APlayerCharacter::BasicAttack()
 	switch (State)
 	{
 		case Idle: case Walking:
-			PlayAnimMontage(BAttack1);
-			State = Attacking;
+			Combo();
 			break;
-
+		case Attacking:
+			AttackInputBuffer = true;
 		default:
 			break;
 	}
+}
+
+void APlayerCharacter::MidAttack()
+{
+	if (AttackInputBuffer)
+	{
+		AttackInputBuffer = false;
+		Combo();
+	}
+	else
+		State = Idle;
+}
+
+void APlayerCharacter::ChooseComboAttack(int32 Counter)
+{
+	switch (Counter)
+	{
+		case 0:
+			PlayAnimMontage(BAttack1);
+			ComboCounter++;
+			break;
+		case 1:
+			PlayAnimMontage(BAttack2);
+			ComboCounter++;
+			break;
+		case 2:
+			PlayAnimMontage(BAttack3);
+			ComboCounter = 0;
+			break;
+		default:
+			break;
+			
+	}
+}
+
+void APlayerCharacter::Combo()
+{
+	ChooseComboAttack(ComboCounter);
+	State = Attacking;
+}
+
+void APlayerCharacter::ResetAttack()
+{
+	ResetCounter();
+	State = Idle;
+}
+
+void APlayerCharacter::ResetCounter()
+{
+	ComboCounter = 0;
 }
 
 void APlayerCharacter::Tick(float DeltaSeconds)
