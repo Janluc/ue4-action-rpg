@@ -3,6 +3,8 @@
 #pragma once
 
 #include "CoreMinimal.h"
+
+#include "PState.h"
 #include "GameFramework/Character.h"
 #include "PlayerCharacter.generated.h"
 
@@ -14,6 +16,7 @@ class MYPROJECT_API APlayerCharacter : public ACharacter
 public:
 	// Sets default values for this character's properties
 	APlayerCharacter();
+	EPState PlayerState = Idle;
 
 protected:
 	// Called when the game starts or when spawned
