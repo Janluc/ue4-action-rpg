@@ -20,9 +20,28 @@ class MYPROJECT_API APlayerCharacter : public ACharacter
 	/** Follow camera */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
 	class UCameraComponent* FollowCamera;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (AllowPrivateAccess = "true"))
+	USkeletalMeshComponent* Weapon;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (AllowPrivateAccess = "true"))
+	USceneComponent* HitBox1;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (AllowPrivateAccess = "true"))
+	USceneComponent* HitBox2;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (AllowPrivateAccess = "true"))
+	USceneComponent* HitBox3;
+
+	FVector HitBox1Location;
+	FVector HitBox2Location;
+	FVector HitBox3Location;
+
+	bool HitBoxActive;
+	
 	public:
 	APlayerCharacter();
 
+	void HitBoxOn();
+	void HitBoxOff();
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TEnumAsByte<EPState> State;
 	/** Base turn rate, in deg/sec. Other scaling may affect final turn rate. */
@@ -51,6 +70,10 @@ class MYPROJECT_API APlayerCharacter : public ACharacter
 
 	void ResetAttack();
 	void ResetCounter();
+
+	void TraceHits();
+	void HitBoxTraceLocation(FVector &HitBoxLocation, USceneComponent* HitBox);
+	void BackupHitBox();
 	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
 	UAnimMontage* BAttack1;
@@ -66,6 +89,8 @@ class MYPROJECT_API APlayerCharacter : public ACharacter
 
 	/** Called for side to side input */
 	void MoveRight(float Value);
+
+
 
 	
 

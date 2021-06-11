@@ -9,6 +9,7 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/Controller.h"	
 #include "GameFramework/SpringArmComponent.h"
+#include "Kismet/GameplayStatics.h"
 
 APlayerCharacter::APlayerCharacter()
 {
@@ -18,6 +19,7 @@ APlayerCharacter::APlayerCharacter()
 	// set our turn rates for input
 	BaseTurnRate = 45.f;
 	BaseLookUpRate = 45.f;
+	
 
 	// Don't rotate when the controller rotates. Let that just affect the camera.
 	bUseControllerRotationPitch = false;
@@ -43,6 +45,31 @@ APlayerCharacter::APlayerCharacter()
 
 	// Note: The skeletal mesh and anim blueprint references on the Mesh component (inherited from Character) 
 	// are set in the derived blueprint asset named MyCharacter (to avoid direct content references in C++)
+
+	Weapon = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("Weapon"));
+	Weapon->SetupAttachment(GetMesh(), TEXT("hand_r"));
+
+	HitBox1 = CreateDefaultSubobject<USceneComponent>(TEXT("HitBox1"));
+	HitBox2 = CreateDefaultSubobject<USceneComponent>(TEXT("HitBox2"));
+	HitBox3 = CreateDefaultSubobject<USceneComponent>(TEXT("HitBox3"));
+
+	HitBox1->SetupAttachment(Weapon);
+	HitBox2->SetupAttachment(Weapon);
+	HitBox3->SetupAttachment(Weapon);
+}
+
+void APlayerCharacter::HitBoxOn()
+{
+
+	HitBox1Location = HitBox1->GetComponentLocation();
+	HitBox2Location = HitBox2->GetComponentLocation();
+	HitBox3Location = HitBox3->GetComponentLocation();
+	HitBoxActive = true;
+}
+
+void APlayerCharacter::HitBoxOff()
+{
+	HitBoxActive = false;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -137,11 +164,15 @@ void APlayerCharacter::SetStateFromBasicMovement()
 		if (ForwardInput == 0 && RightInput == 0)
 			State = Idle;
 		else
+		{
 			State = Walking;
+			StopAnimMontage();
+		}
+			
 	}
 	else
 		State = Jumping;
-	StopAnimMontage();
+	
 }
 
 void APlayerCharacter::BasicAttack()
@@ -208,9 +239,63 @@ void APlayerCharacter::ResetCounter()
 	ComboCounter = 0;
 }
 
+void APlayerCharacter::TraceHits()
+{
+	
+	HitBoxTraceLocation(HitBox1Location, HitBox1);
+	HitBoxTraceLocation(HitBox2Location, HitBox2);
+	HitBoxTraceLocation(HitBox3Location, HitBox3);
+	
+}
+
+void APlayerCharacter::HitBoxTraceLocation(FVector& HitBoxLocation, USceneComponent* HitBox)
+{
+	FHitResult Hit;
+	const FName TraceTag("TraceTag");
+	GetWorld()->DebugDrawTraceTag = TraceTag;
+	
+	FCollisionShape Sphere = FCollisionShape::MakeSphere(50.0f);
+	FCollisionQueryParams Params;
+	Params.TraceTag = TraceTag;
+
+	Params.AddIgnoredActor(this);
+	GetWorld()->SweepSingleByChannel(Hit, HitBoxLocation, HitBox->GetComponentLocation(), FQuat(0,0,0,0), ECollisionChannel::ECC_Pawn, Sphere, Params);
+
+	if (Hit.GetActor())
+	{
+		GEngine->AddOnScreenDebugMessage(-1, 2, FColor::Yellow, FString::Printf(TEXT("%s"), *Hit.Actor->GetName()));
+	}
+
+
+	HitBoxLocation = HitBox->GetComponentLocation();
+}
+
+// Back up hitbox for low FPS
+void APlayerCharacter::BackupHitBox()
+{
+	FHitResult Hit;
+	const FName TraceTag("TraceTag");
+	GetWorld()->DebugDrawTraceTag = TraceTag;
+	
+	FCollisionShape Sphere = FCollisionShape::MakeSphere(75.0f);
+	FCollisionQueryParams Params;
+	Params.TraceTag = TraceTag;
+
+	Params.AddIgnoredActor(this);
+	GetWorld()->SweepSingleByChannel(Hit, GetActorLocation() + GetActorForwardVector() * 50, GetActorLocation() + GetActorForwardVector() * 200, FQuat(0,0,0,0), ECollisionChannel::ECC_Pawn, Sphere, Params);
+
+}
+
 void APlayerCharacter::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
 	GEngine->AddOnScreenDebugMessage(-1, 0, FColor::Yellow, FString::Printf(TEXT("%i"), State));
+
+	if (HitBoxActive)
+	{
+		TraceHits();
+	}
+
+
 }
 
