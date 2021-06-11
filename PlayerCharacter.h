@@ -4,12 +4,13 @@
 
 #include "CoreMinimal.h"
 
+#include "CombatInterface.h"
 #include "PState.h"
 #include "GameFramework/Character.h"
 #include "PlayerCharacter.generated.h"
 
 UCLASS()
-class MYPROJECT_API APlayerCharacter : public ACharacter
+class MYPROJECT_API APlayerCharacter : public ACharacter, public ICombatInterface
 {
 	GENERATED_BODY()
 
@@ -74,6 +75,15 @@ class MYPROJECT_API APlayerCharacter : public ACharacter
 	void TraceHits();
 	void HitBoxTraceLocation(FVector &HitBoxLocation, USceneComponent* HitBox);
 	void BackupHitBox();
+
+	void SphereTraces(FVector StartLocation, FVector EndLocation, float SphereSize, AActor* &HitActor );
+
+	virtual void TakeDamage(TEnumAsByte<EPAttackType> AttackType) override;
+
+	TEnumAsByte<EPAttackType> PlayerAttackType;
+	
+	AActor* HitActor;
+	TArray<AActor*> HitActors;
 	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
 	UAnimMontage* BAttack1;
@@ -81,6 +91,13 @@ class MYPROJECT_API APlayerCharacter : public ACharacter
 	UAnimMontage* BAttack2;
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
 	UAnimMontage* BAttack3;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
+	UAnimMontage* LightHitReaction;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
+	UAnimMontage* MediumHitReaction;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
+	UAnimMontage* HeavyHitReaction;
 	
 	protected:
 

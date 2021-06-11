@@ -207,14 +207,17 @@ void APlayerCharacter::ChooseComboAttack(int32 Counter)
 		case 0:
 			PlayAnimMontage(BAttack1);
 			ComboCounter++;
+			PlayerAttackType = Medium;
 			break;
 		case 1:
 			PlayAnimMontage(BAttack2);
 			ComboCounter++;
+			PlayerAttackType = Medium;
 			break;
 		case 2:
 			PlayAnimMontage(BAttack3);
 			ComboCounter = 0;
+			PlayerAttackType = Heavy;
 			break;
 		default:
 			break;
@@ -241,49 +244,66 @@ void APlayerCharacter::ResetCounter()
 
 void APlayerCharacter::TraceHits()
 {
-	
 	HitBoxTraceLocation(HitBox1Location, HitBox1);
 	HitBoxTraceLocation(HitBox2Location, HitBox2);
 	HitBoxTraceLocation(HitBox3Location, HitBox3);
-	
 }
 
 void APlayerCharacter::HitBoxTraceLocation(FVector& HitBoxLocation, USceneComponent* HitBox)
 {
-	FHitResult Hit;
-	const FName TraceTag("TraceTag");
-	GetWorld()->DebugDrawTraceTag = TraceTag;
-	
-	FCollisionShape Sphere = FCollisionShape::MakeSphere(50.0f);
-	FCollisionQueryParams Params;
-	Params.TraceTag = TraceTag;
-
-	Params.AddIgnoredActor(this);
-	GetWorld()->SweepSingleByChannel(Hit, HitBoxLocation, HitBox->GetComponentLocation(), FQuat(0,0,0,0), ECollisionChannel::ECC_Pawn, Sphere, Params);
-
-	if (Hit.GetActor())
-	{
-		GEngine->AddOnScreenDebugMessage(-1, 2, FColor::Yellow, FString::Printf(TEXT("%s"), *Hit.Actor->GetName()));
-	}
-
-
+	SphereTraces(HitBoxLocation, HitBox->GetComponentLocation(), 50.0f, HitActor);
 	HitBoxLocation = HitBox->GetComponentLocation();
 }
 
 // Back up hitbox for low FPS
 void APlayerCharacter::BackupHitBox()
 {
+	SphereTraces(GetActorLocation() + GetActorForwardVector() * 50, GetActorLocation() + GetActorForwardVector() * 200, 75.0f, HitActor);
+}
+
+void APlayerCharacter::SphereTraces(FVector StartLocation, FVector EndLocation, float SphereSize, AActor* &Actor )
+{
 	FHitResult Hit;
 	const FName TraceTag("TraceTag");
 	GetWorld()->DebugDrawTraceTag = TraceTag;
 	
-	FCollisionShape Sphere = FCollisionShape::MakeSphere(75.0f);
+	FCollisionShape Sphere = FCollisionShape::MakeSphere(SphereSize);
 	FCollisionQueryParams Params;
 	Params.TraceTag = TraceTag;
 
 	Params.AddIgnoredActor(this);
-	GetWorld()->SweepSingleByChannel(Hit, GetActorLocation() + GetActorForwardVector() * 50, GetActorLocation() + GetActorForwardVector() * 200, FQuat(0,0,0,0), ECollisionChannel::ECC_Pawn, Sphere, Params);
+	GetWorld()->SweepSingleByChannel(Hit, StartLocation,EndLocation, FQuat(0,0,0,0), ECollisionChannel::ECC_Pawn, Sphere, Params);
 
+	if (Hit.GetActor())
+	{
+		if (!HitActors.Contains(Hit.GetActor()))
+		{
+			Actor = Hit.GetActor();
+			ICombatInterface* HitActorInterface = Cast<ICombatInterface>(Actor);
+			if (HitActorInterface)
+			{
+				HitActorInterface->TakeDamage(PlayerAttackType);
+			}
+		}
+	}
+}
+
+void APlayerCharacter::TakeDamage(TEnumAsByte<EPAttackType> AttackType)
+{
+	switch (AttackType)
+	{
+		case Light:
+			PlayAnimMontage(LightHitReaction);
+			break;
+		case Medium:
+			PlayAnimMontage(MediumHitReaction);
+			break;
+		case Heavy:
+			PlayAnimMontage(HeavyHitReaction);
+			break;
+		default:
+			break;
+	}
 }
 
 void APlayerCharacter::Tick(float DeltaSeconds)
@@ -295,7 +315,6 @@ void APlayerCharacter::Tick(float DeltaSeconds)
 	{
 		TraceHits();
 	}
-
 
 }
 
