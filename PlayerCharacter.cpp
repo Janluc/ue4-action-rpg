@@ -2,7 +2,6 @@
 
 
 #include "PlayerCharacter.h"
-#include "HeadMountedDisplayFunctionLibrary.h"
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/InputComponent.h"
@@ -10,6 +9,7 @@
 #include "GameFramework/Controller.h"	
 #include "GameFramework/SpringArmComponent.h"
 #include "Kismet/GameplayStatics.h"
+#include "Kismet/KismetMathLibrary.h"
 
 APlayerCharacter::APlayerCharacter()
 {
@@ -70,6 +70,7 @@ void APlayerCharacter::HitBoxOn()
 void APlayerCharacter::HitBoxOff()
 {
 	HitBoxActive = false;
+	HitActors.Empty();
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -82,6 +83,7 @@ void APlayerCharacter::SetupPlayerInputComponent(class UInputComponent* PlayerIn
 	PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &ACharacter::Jump);
 	PlayerInputComponent->BindAction("Jump", IE_Released, this, &ACharacter::StopJumping);
 	PlayerInputComponent->BindAction(("BasicAttack"), IE_Pressed, this, &APlayerCharacter::BasicAttack);
+	PlayerInputComponent->BindAction("LockOn", IE_Pressed, this, &APlayerCharacter::LockOn);
 
 	PlayerInputComponent->BindAxis("MoveForward", this, &APlayerCharacter::MoveForward);
 	PlayerInputComponent->BindAxis("MoveRight", this, &APlayerCharacter::MoveRight);
@@ -167,8 +169,8 @@ void APlayerCharacter::SetStateFromBasicMovement()
 		{
 			State = Walking;
 			StopAnimMontage();
+			ResetCounter();
 		}
-			
 	}
 	else
 		State = Jumping;
@@ -264,32 +266,39 @@ void APlayerCharacter::BackupHitBox()
 void APlayerCharacter::SphereTraces(FVector StartLocation, FVector EndLocation, float SphereSize, AActor* &Actor )
 {
 	FHitResult Hit;
-	const FName TraceTag("TraceTag");
-	GetWorld()->DebugDrawTraceTag = TraceTag;
+	//const FName TraceTag("TraceTag");
+	//GetWorld()->DebugDrawTraceTag = TraceTag;
 	
 	FCollisionShape Sphere = FCollisionShape::MakeSphere(SphereSize);
 	FCollisionQueryParams Params;
-	Params.TraceTag = TraceTag;
+	//Params.TraceTag = TraceTag;
+
+	TArray<TEnumAsByte<EObjectTypeQuery>> TraceObjects;
+	TraceObjects.Add(UEngineTypes::ConvertToObjectType(ECC_Pawn));
 
 	Params.AddIgnoredActor(this);
-	GetWorld()->SweepSingleByChannel(Hit, StartLocation,EndLocation, FQuat(0,0,0,0), ECollisionChannel::ECC_Pawn, Sphere, Params);
+	GetWorld()->SweepSingleByObjectType(Hit, StartLocation, EndLocation, FQuat(0,0,0,0), TraceObjects, Sphere, Params);
 
 	if (Hit.GetActor())
 	{
 		if (!HitActors.Contains(Hit.GetActor()))
 		{
 			Actor = Hit.GetActor();
+			HitActors.Add(Actor);
 			ICombatInterface* HitActorInterface = Cast<ICombatInterface>(Actor);
 			if (HitActorInterface)
 			{
-				HitActorInterface->TakeDamage(PlayerAttackType);
+				HitActorInterface->TakeDamage(PlayerAttackType, this);
 			}
 		}
 	}
 }
 
-void APlayerCharacter::TakeDamage(TEnumAsByte<EPAttackType> AttackType)
+void APlayerCharacter::TakeDamage(TEnumAsByte<EPAttackType> AttackType, AActor* DamagingActor)
 {
+	FRotator LookAtRotation = UKismetMathLibrary::FindLookAtRotation(GetActorLocation(), DamagingActor->GetActorLocation());
+	SetActorRotation(LookAtRotation);
+	
 	switch (AttackType)
 	{
 		case Light:
@@ -299,11 +308,50 @@ void APlayerCharacter::TakeDamage(TEnumAsByte<EPAttackType> AttackType)
 			PlayAnimMontage(MediumHitReaction);
 			break;
 		case Heavy:
-			PlayAnimMontage(HeavyHitReaction);
-			break;
+			{
+				GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_Flying);
+				PlayAnimMontage(HeavyHitReaction);
+				float KnockdownAnimTime = GetCurrentMontage()->GetPlayLength();
+				KnockdownTimer;
+				GetWorldTimerManager().SetTimer(KnockdownTimer, this, &APlayerCharacter::KnockdownAnimDelay, KnockdownAnimTime);
+				break;	
+			}
 		default:
 			break;
 	}
+}
+
+void APlayerCharacter::KnockdownAnimDelay()
+{
+	GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_Walking);
+}
+
+void APlayerCharacter::LockOn()
+{
+	FHitResult Hit;
+	//const FName TraceTag("TraceTag");
+	//GetWorld()->DebugDrawTraceTag = TraceTag;
+	
+	FCollisionShape Sphere = FCollisionShape::MakeSphere(750.0f);
+	FCollisionQueryParams Params;
+	//Params.TraceTag = TraceTag;
+
+	TArray<TEnumAsByte<EObjectTypeQuery>> TraceObjects;
+	TraceObjects.Add(UEngineTypes::ConvertToObjectType(ECC_Pawn));
+
+	Params.AddIgnoredActor(this);
+	
+	GetWorld()->SweepSingleByObjectType(Hit, GetActorLocation(), GetActorLocation(), FQuat(0,0,0,0), TraceObjects,Sphere, Params);
+	if (Hit.GetActor())
+	{
+		GEngine->AddOnScreenDebugMessage(0, 1, FColor::Yellow, FString::Printf(TEXT("%s"), *Hit.GetActor()->GetName()));
+		LockedOnCharacter = Hit.GetActor();
+		bIsLockedOn = true;
+		bUseControllerRotationYaw = true;
+		GetCharacterMovement()->bOrientRotationToMovement = false;
+	}
+	
+
 }
 
 void APlayerCharacter::Tick(float DeltaSeconds)
@@ -316,5 +364,15 @@ void APlayerCharacter::Tick(float DeltaSeconds)
 		TraceHits();
 	}
 
+	if (bIsLockedOn)
+	{
+		
+		FRotator PlayerLookAtRotation = UKismetMathLibrary::FindLookAtRotation(GetActorLocation(), LockedOnCharacter->GetActorLocation());
+		GetController()->SetControlRotation(PlayerLookAtRotation);
+		FRotator CamLookAtRotation = UKismetMathLibrary::FindLookAtRotation(FollowCamera->GetComponentLocation(),LockedOnCharacter->GetActorLocation());
+		
+		FollowCamera->SetWorldRotation(FMath::RInterpTo(FollowCamera->GetComponentRotation(), CamLookAtRotation, DeltaSeconds, 7.0f));
+	}
+	
 }
 

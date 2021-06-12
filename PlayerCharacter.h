@@ -78,7 +78,15 @@ class MYPROJECT_API APlayerCharacter : public ACharacter, public ICombatInterfac
 
 	void SphereTraces(FVector StartLocation, FVector EndLocation, float SphereSize, AActor* &HitActor );
 
-	virtual void TakeDamage(TEnumAsByte<EPAttackType> AttackType) override;
+	virtual void TakeDamage(TEnumAsByte<EPAttackType> AttackType, AActor* DamagingActor) override;
+
+	void KnockdownAnimDelay();
+
+	void LockOn();
+	AActor* LockedOnCharacter;
+	
+	FTimerHandle KnockdownTimer;
+	bool bIsLockedOn;
 
 	TEnumAsByte<EPAttackType> PlayerAttackType;
 	
