@@ -13,6 +13,7 @@
 #include "GameFramework/SpringArmComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetMathLibrary.h"
+#include "Particles/ParticleSystem.h"
 
 APlayerCharacter::APlayerCharacter()
 {
@@ -89,6 +90,7 @@ void APlayerCharacter::SetupPlayerInputComponent(class UInputComponent* PlayerIn
 	PlayerInputComponent->BindAction("LockOn", IE_Pressed, this, &APlayerCharacter::LockOn);
 	PlayerInputComponent->BindAction("AltAttack", IE_Pressed, this, &APlayerCharacter::AltAttack);
 	PlayerInputComponent->BindAction("Dash", IE_Pressed, this, &APlayerCharacter::Dash);
+	PlayerInputComponent->BindAction("MagicAttack", IE_Pressed, this, &APlayerCharacter::MagicAttack);
 
 	PlayerInputComponent->BindAxis("MoveForward", this, &APlayerCharacter::MoveForward);
 	PlayerInputComponent->BindAxis("MoveRight", this, &APlayerCharacter::MoveRight);
@@ -227,7 +229,7 @@ void APlayerCharacter::BasicAttack()
 			ComboCounter++;
 			State = Attacking;
 			break;
-		case Attacking:
+		case Attacking: case Casting:
 			AttackInputBuffer = true;
 			bIsAltAttack = false;
 		default:
@@ -336,14 +338,14 @@ void APlayerCharacter::TraceHits()
 
 void APlayerCharacter::HitBoxTraceLocation(FVector& HitBoxLocation, USceneComponent* HitBox)
 {
-	SphereTraces(HitBoxLocation, HitBox->GetComponentLocation(), 50.0f, HitActor);
+	SphereTraces(HitBoxLocation, HitBox->GetComponentLocation(), 30.0f, HitActor);
 	HitBoxLocation = HitBox->GetComponentLocation();
 }
 
 // Back up hitbox for low FPS
 void APlayerCharacter::BackupHitBox()
 {
-	SphereTraces(GetActorLocation() + GetActorForwardVector() * 50, GetActorLocation() + GetActorForwardVector() * 200, 75.0f, HitActor);
+	SphereTraces(GetActorLocation() + GetActorForwardVector() * 50, GetActorLocation() + GetActorForwardVector() * 100, 75.0f, HitActor);
 }
 
 void APlayerCharacter::SphereTraces(FVector StartLocation, FVector EndLocation, float SphereSize, AActor* &Actor )
@@ -382,28 +384,39 @@ void APlayerCharacter::TakeDamage(TEnumAsByte<EPAttackType> AttackType, AActor* 
 {
 	FRotator LookAtRotation = UKismetMathLibrary::FindLookAtRotation(GetActorLocation(), DamagingActor->GetActorLocation());
 	SetActorRotation(FRotator(0,LookAtRotation.Yaw, 0));
-	
-	switch (AttackType)
+	if (GetCurrentMontage() == HeavyHitReaction)
 	{
-		case Light:
-			PlayAnimMontage(LightHitReaction);
-			
-			break;
-		case Medium:
-			PlayAnimMontage(MediumHitReaction);
-			break;
-		case Heavy:
-			{
-				GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_Flying);
-				PlayAnimMontage(HeavyHitReaction);
-				float KnockdownAnimTime = GetCurrentMontage()->GetPlayLength();
-				KnockdownTimer;
-				GetWorldTimerManager().SetTimer(KnockdownTimer, this, &APlayerCharacter::KnockdownAnimDelay, KnockdownAnimTime);
-				break;	
-			}
-		default:
-			break;
+		GetWorldTimerManager().ClearTimer(KnockdownTimer);
+		GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_Flying);
+		PlayAnimMontage(HeavyHitReaction);
+		float KnockdownAnimTime = GetCurrentMontage()->GetPlayLength();
+		GetWorldTimerManager().SetTimer(KnockdownTimer, this, &APlayerCharacter::KnockdownAnimDelay, KnockdownAnimTime);
 	}
+	else
+	{
+		switch (AttackType)
+		{
+			case Light:
+				PlayAnimMontage(LightHitReaction);
+				
+				break;
+			case Medium:
+				PlayAnimMontage(MediumHitReaction);
+				break;
+			case Heavy:
+				{
+					GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_Flying);
+					PlayAnimMontage(HeavyHitReaction);
+					float KnockdownAnimTime = GetCurrentMontage()->GetPlayLength();
+					GetWorldTimerManager().SetTimer(KnockdownTimer, this, &APlayerCharacter::KnockdownAnimDelay, KnockdownAnimTime);
+					break;	
+				}
+			default:
+				break;
+		}
+	}
+	
+	
 }
 
 void APlayerCharacter::KnockdownAnimDelay()
@@ -471,7 +484,7 @@ void APlayerCharacter::AltAttack()
 		AltCombo();
 		bIsAltAttack = true;
 		break;
-	case Attacking:
+	case Attacking: case Casting:
 		AttackInputBuffer = true;
 		bIsAltAttack = true;
 	default:
@@ -492,7 +505,7 @@ void APlayerCharacter::Dash()
 {
 	switch (State)
 	{
-		case Idle: case Walking: case Attacking:
+		case Idle: case Walking: case Attacking: case Casting:
 			State = Dashing;
 			SetupDash();
 			if (ForwardInput == 0 && RightInput == 0)
@@ -530,6 +543,62 @@ void APlayerCharacter::ResetMovement()
 {
 	State = Idle;
 	GetCharacterMovement()->GroundFriction = 8.0f;
+}
+
+void APlayerCharacter::MagicAttack()
+{
+	if (GetCharacterMovement()->MovementMode != MOVE_Flying)
+	{
+		switch (State)
+		{
+			case Idle: case Walking: case Attacking: case Dashing:
+				AttackInputBuffer = false;
+				ResetCounter();
+				HitBoxOff();
+				State = Casting;
+				CastedSpell = EquippedSpell;
+				CastSpell();
+				break;
+			default:
+				break;
+		}
+	}
+}
+
+void APlayerCharacter::CastSpell()
+{
+	switch (CastedSpell)
+	{
+		case Thunder:
+			PlayAnimMontage(ThunderCastAnim);
+			break;
+		case Fire:
+			PlayAnimMontage(FireCastAnim);
+			break;
+		case Ice:
+			PlayAnimMontage(IceCastAnim);
+			break;
+		case Wind:
+			PlayAnimMontage(WindCastAnim);
+			break;
+		default:
+			break;
+	}
+}
+
+void APlayerCharacter::InitMagicDamage()
+{
+	FSpell Spell = SpellTable[CastedSpell];
+	ICombatInterface* Enemy = Cast<ICombatInterface>(LockedOnCharacter);
+	Enemy->TakeMagicDamage(Spell.AttackType, Spell.DamageParticle, this);
+}
+
+void APlayerCharacter::TakeMagicDamage(EPAttackType AttackType, UParticleSystem* Particle, AActor* DamagingActor)
+{
+	UGameplayStatics::SpawnEmitterAtLocation(this, Particle, GetActorLocation());
+	TakeDamage(AttackType, DamagingActor);
+	
+	
 }
 
 void APlayerCharacter::Tick(float DeltaSeconds)

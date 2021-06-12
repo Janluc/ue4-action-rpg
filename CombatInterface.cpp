@@ -7,3 +7,7 @@
 void ICombatInterface::TakeDamage(TEnumAsByte<EPAttackType> AttackType, AActor* DamagingActor)
 {
 }
+
+void ICombatInterface::TakeMagicDamage(EPAttackType AttackType, UParticleSystem* Particle, AActor* DamagingActor)
+{
+}

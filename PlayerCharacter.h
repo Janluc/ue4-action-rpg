@@ -112,9 +112,14 @@ class MYPROJECT_API APlayerCharacter : public ACharacter, public ICombatInterfac
 	void SetupDash();
 	void Dash();
 	void ResetMovement();
+	void MagicAttack();
+	void CastSpell();
+	void InitMagicDamage();
+	void TakeMagicDamage(EPAttackType AttackType, UParticleSystem* Particle, AActor* DamagingActor) override;
 	
 	AActor* LockedOnCharacter;
-	
+	TEnumAsByte<EPMagicSpell> EquippedSpell = Thunder;
+	TEnumAsByte<EPMagicSpell> CastedSpell;
 	FTimerHandle KnockdownTimer;
 	bool bIsLockedOn;
 	bool bIsAltAttack;
@@ -141,6 +146,15 @@ class MYPROJECT_API APlayerCharacter : public ACharacter, public ICombatInterfac
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
 	UAnimMontage* DashAttack;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
+	UAnimMontage* ThunderCastAnim;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
+	UAnimMontage* FireCastAnim;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
+	UAnimMontage* IceCastAnim;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
+	UAnimMontage* WindCastAnim;
+	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
 	UParticleSystem* ThunderHitParticle;
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
