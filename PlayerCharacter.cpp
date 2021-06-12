@@ -2,6 +2,9 @@
 
 
 #include "PlayerCharacter.h"
+
+#include <activation.h>
+
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/InputComponent.h"
@@ -85,6 +88,7 @@ void APlayerCharacter::SetupPlayerInputComponent(class UInputComponent* PlayerIn
 	PlayerInputComponent->BindAction(("BasicAttack"), IE_Pressed, this, &APlayerCharacter::BasicAttack);
 	PlayerInputComponent->BindAction("LockOn", IE_Pressed, this, &APlayerCharacter::LockOn);
 	PlayerInputComponent->BindAction("AltAttack", IE_Pressed, this, &APlayerCharacter::AltAttack);
+	PlayerInputComponent->BindAction("Dash", IE_Pressed, this, &APlayerCharacter::Dash);
 
 	PlayerInputComponent->BindAxis("MoveForward", this, &APlayerCharacter::MoveForward);
 	PlayerInputComponent->BindAxis("MoveRight", this, &APlayerCharacter::MoveRight);
@@ -182,9 +186,17 @@ void APlayerCharacter::BasicAttack()
 {
 	switch (State)
 	{
-		case Idle: case Walking:
+		case Idle: case Walking: 
 			Combo();
 			bIsAltAttack = false;
+			break;
+		case Dashing:
+			ResetMovement();
+			bIsAltAttack = false;
+			PlayAnimMontage(DashAttack);
+			PlayerAttackType = Medium;
+			ComboCounter++;
+			State = Attacking;
 			break;
 		case Attacking:
 			AttackInputBuffer = true;
@@ -436,6 +448,58 @@ void APlayerCharacter::AltAttack()
 	default:
 		break;
 	}
+}
+
+void APlayerCharacter::SetupDash()
+{
+	GetCharacterMovement()->Velocity = FVector::ZeroVector;
+	GetCharacterMovement()->GroundFriction = 0.0f;
+	HitBoxOff();
+	ResetCounter();
+}
+
+void APlayerCharacter::Dash()
+{
+	switch (State)
+	{
+		case Idle: case Walking: case Attacking:
+			State = Dashing;
+			SetupDash();
+			if (ForwardInput == 0 && RightInput == 0)
+			{
+				PlayAnimMontage(DashBack);
+				FVector Impulse = (GetActorForwardVector() * -1.0f) * 1000.0f;
+				GetCharacterMovement()->AddImpulse(Impulse, true);
+			}
+			else
+			{
+				if (RightInput == 0)
+				{
+					PlayAnimMontage(ForwardInput >= 1 ?	DashForward : DashBack);
+					FVector Impulse = (GetActorForwardVector() * ForwardInput) * 1000.0f;
+					GetCharacterMovement()->AddImpulse(Impulse, true);
+				}
+				else
+				{
+					PlayAnimMontage(RightInput >= 1 ? DashRight : DashLeft);
+					FVector InputDashDirection = (GetActorForwardVector() * ForwardInput) + (GetActorRightVector() * RightInput);
+					UKismetMathLibrary::Vector_Normalize(InputDashDirection);
+
+					FVector Impulse = InputDashDirection * 1000.0f;
+					GetCharacterMovement()->AddImpulse(Impulse, true);
+				}
+			}
+			break;
+		default:
+			break;
+	}
+	
+}
+
+void APlayerCharacter::ResetMovement()
+{
+	State = Idle;
+	GetCharacterMovement()->GroundFriction = 8.0f;
 }
 
 void APlayerCharacter::Tick(float DeltaSeconds)

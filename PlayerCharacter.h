@@ -90,6 +90,9 @@ class MYPROJECT_API APlayerCharacter : public ACharacter, public ICombatInterfac
 	void HitStun();
 	void HitStunEnd();
 	void AltAttack();
+	void SetupDash();
+	void Dash();
+	void ResetMovement();
 	
 	AActor* LockedOnCharacter;
 	
@@ -116,6 +119,18 @@ class MYPROJECT_API APlayerCharacter : public ACharacter, public ICombatInterfac
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
 	UAnimMontage* AltAttack3;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
+	UAnimMontage* DashAttack;
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
+	UAnimMontage* DashForward;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
+	UAnimMontage* DashRight;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
+	UAnimMontage* DashLeft;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
+	UAnimMontage* DashBack;
+	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
 	UAnimMontage* LightHitReaction;
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
