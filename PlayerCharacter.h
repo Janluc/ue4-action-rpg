@@ -5,9 +5,26 @@
 #include "CoreMinimal.h"
 
 #include "CombatInterface.h"
+#include "PMagicSpells.h"
 #include "PState.h"
 #include "GameFramework/Character.h"
 #include "PlayerCharacter.generated.h"
+
+USTRUCT(BlueprintType)
+struct FSpell
+{
+	GENERATED_BODY()
+	
+	UPROPERTY(EditAnywhere);
+	FString Name;
+	UPROPERTY(EditAnywhere);
+	TEnumAsByte<EPAttackType> AttackType;
+	UPROPERTY(EditAnywhere);
+	UParticleSystem* DamageParticle;
+	UPROPERTY(EditAnywhere);
+	float ManaConsumed;
+	
+};
 
 UCLASS()
 class MYPROJECT_API APlayerCharacter : public ACharacter, public ICombatInterface
@@ -41,6 +58,8 @@ class MYPROJECT_API APlayerCharacter : public ACharacter, public ICombatInterfac
 	public:
 	APlayerCharacter();
 
+	TMap<TEnumAsByte<EPMagicSpell>, FSpell> SpellTable;	
+	
 	void HitBoxOn();
 	void HitBoxOff();
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
@@ -121,6 +140,16 @@ class MYPROJECT_API APlayerCharacter : public ACharacter, public ICombatInterfac
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
 	UAnimMontage* DashAttack;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
+	UParticleSystem* ThunderHitParticle;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
+	UParticleSystem* FireHitParticle;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
+	UParticleSystem* IceHitParticle;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
+	UParticleSystem* WindHitParticle;
+
 	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
 	UAnimMontage* DashForward;
@@ -146,7 +175,7 @@ class MYPROJECT_API APlayerCharacter : public ACharacter, public ICombatInterfac
 	/** Called for side to side input */
 	void MoveRight(float Value);
 
-
+	virtual void BeginPlay() override;
 
 	
 

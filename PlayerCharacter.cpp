@@ -164,6 +164,35 @@ void APlayerCharacter::MoveRight(float Value)
 
 }
 
+void APlayerCharacter::BeginPlay()
+{
+	Super::BeginPlay();
+	FSpell Thunder;
+	Thunder.Name = "Thunder";
+	Thunder.AttackType = Medium;
+	Thunder.DamageParticle = ThunderHitParticle;
+
+	FSpell Fire;
+	Fire.Name = "Fire";
+	Fire.AttackType = Heavy;
+	Fire.DamageParticle = FireHitParticle;
+
+	FSpell Ice;
+	Ice.Name = "Fire";
+	Ice.AttackType = Light;
+	Ice.DamageParticle = IceHitParticle;
+
+	FSpell Wind;
+	Wind.Name = "Wind";
+	Wind.AttackType = Light;
+	Wind.DamageParticle = WindHitParticle;
+
+	SpellTable.Add(EPMagicSpell::Thunder, Thunder);
+	SpellTable.Add(EPMagicSpell::Fire, Fire);
+	SpellTable.Add(EPMagicSpell::Ice, Ice);
+	SpellTable.Add(EPMagicSpell::Wind, Wind);
+}
+
 void APlayerCharacter::SetStateFromBasicMovement()
 {
 	if (!GetCharacterMovement()->IsFalling())
@@ -456,6 +485,7 @@ void APlayerCharacter::SetupDash()
 	GetCharacterMovement()->GroundFriction = 0.0f;
 	HitBoxOff();
 	ResetCounter();
+	AttackInputBuffer = false;
 }
 
 void APlayerCharacter::Dash()

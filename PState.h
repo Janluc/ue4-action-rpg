@@ -15,5 +15,6 @@ enum EPState
 	Walking		UMETA(DisplayName = "Walking"),
 	Jumping		UMETA(DisplayName = "Jumping"),
 	Attacking	UMETA(DisplayName = "Attacking"),
-	Dashing		UMETA(DisplayName = "Dashing")	
+	Dashing		UMETA(DisplayName = "Dashing"),
+	Casting		UMETA(DisplayName = "Casting")
 };
