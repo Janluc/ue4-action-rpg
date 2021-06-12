@@ -84,6 +84,7 @@ void APlayerCharacter::SetupPlayerInputComponent(class UInputComponent* PlayerIn
 	PlayerInputComponent->BindAction("Jump", IE_Released, this, &ACharacter::StopJumping);
 	PlayerInputComponent->BindAction(("BasicAttack"), IE_Pressed, this, &APlayerCharacter::BasicAttack);
 	PlayerInputComponent->BindAction("LockOn", IE_Pressed, this, &APlayerCharacter::LockOn);
+	PlayerInputComponent->BindAction("AltAttack", IE_Pressed, this, &APlayerCharacter::AltAttack);
 
 	PlayerInputComponent->BindAxis("MoveForward", this, &APlayerCharacter::MoveForward);
 	PlayerInputComponent->BindAxis("MoveRight", this, &APlayerCharacter::MoveRight);
@@ -183,9 +184,11 @@ void APlayerCharacter::BasicAttack()
 	{
 		case Idle: case Walking:
 			Combo();
+			bIsAltAttack = false;
 			break;
 		case Attacking:
 			AttackInputBuffer = true;
+			bIsAltAttack = false;
 		default:
 			break;
 	}
@@ -193,10 +196,16 @@ void APlayerCharacter::BasicAttack()
 
 void APlayerCharacter::MidAttack()
 {
+	GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_Walking);
 	if (AttackInputBuffer)
 	{
 		AttackInputBuffer = false;
-		Combo();
+		if (bIsAltAttack)
+		{
+			AltCombo();
+		}
+		else
+			Combo();
 	}
 	else
 		State = Idle;
@@ -227,9 +236,41 @@ void APlayerCharacter::ChooseComboAttack(int32 Counter)
 	}
 }
 
+void APlayerCharacter::ChooseAltComboAttack(int32 Counter)
+{
+	switch (Counter)
+	{
+	case 0:
+		PlayAnimMontage(AltAttack1);
+		AltComboCounter++;
+		PlayerAttackType = Light;
+		break;
+	case 1:
+		PlayAnimMontage(AltAttack2);
+		AltComboCounter++;
+		PlayerAttackType = Medium;
+		break;
+	case 2:
+		PlayAnimMontage(AltAttack3);
+		AltComboCounter = 0;
+		PlayerAttackType = Medium;
+		GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_Flying);
+		break;
+	default:
+		break;
+			
+	}
+}
+
 void APlayerCharacter::Combo()
 {
 	ChooseComboAttack(ComboCounter);
+	State = Attacking;
+}
+
+void APlayerCharacter::AltCombo()
+{
+	ChooseAltComboAttack(AltComboCounter);
 	State = Attacking;
 }
 
@@ -242,6 +283,7 @@ void APlayerCharacter::ResetAttack()
 void APlayerCharacter::ResetCounter()
 {
 	ComboCounter = 0;
+	AltComboCounter = 0;
 }
 
 void APlayerCharacter::TraceHits()
@@ -298,7 +340,7 @@ void APlayerCharacter::SphereTraces(FVector StartLocation, FVector EndLocation, 
 void APlayerCharacter::TakeDamage(TEnumAsByte<EPAttackType> AttackType, AActor* DamagingActor)
 {
 	FRotator LookAtRotation = UKismetMathLibrary::FindLookAtRotation(GetActorLocation(), DamagingActor->GetActorLocation());
-	SetActorRotation(LookAtRotation);
+	SetActorRotation(FRotator(0,LookAtRotation.Yaw, 0));
 	
 	switch (AttackType)
 	{
@@ -378,6 +420,22 @@ void APlayerCharacter::HitStunEnd()
 {
 	CustomTimeDilation = 1;
 	LockedOnCharacter->CustomTimeDilation = 1;
+}
+
+void APlayerCharacter::AltAttack()
+{
+	switch (State)
+	{
+	case Idle: case Walking:
+		AltCombo();
+		bIsAltAttack = true;
+		break;
+	case Attacking:
+		AttackInputBuffer = true;
+		bIsAltAttack = true;
+	default:
+		break;
+	}
 }
 
 void APlayerCharacter::Tick(float DeltaSeconds)

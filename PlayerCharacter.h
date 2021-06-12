@@ -57,6 +57,7 @@ class MYPROJECT_API APlayerCharacter : public ACharacter, public ICombatInterfac
 	float RightInput;
 
 	int32 ComboCounter = 0;
+	int32 AltComboCounter = 0;
 	bool AttackInputBuffer;
 
 	void SetStateFromBasicMovement();
@@ -66,8 +67,10 @@ class MYPROJECT_API APlayerCharacter : public ACharacter, public ICombatInterfac
 	void MidAttack();
 
 	void ChooseComboAttack(int32 Counter);
+	void ChooseAltComboAttack(int32 Counter);
 
 	void Combo();
+	void AltCombo();
 
 	void ResetAttack();
 	void ResetCounter();
@@ -86,11 +89,13 @@ class MYPROJECT_API APlayerCharacter : public ACharacter, public ICombatInterfac
 
 	void HitStun();
 	void HitStunEnd();
+	void AltAttack();
 	
 	AActor* LockedOnCharacter;
 	
 	FTimerHandle KnockdownTimer;
 	bool bIsLockedOn;
+	bool bIsAltAttack;
 
 	TEnumAsByte<EPAttackType> PlayerAttackType;
 	
@@ -103,6 +108,13 @@ class MYPROJECT_API APlayerCharacter : public ACharacter, public ICombatInterfac
 	UAnimMontage* BAttack2;
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
 	UAnimMontage* BAttack3;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
+	UAnimMontage* AltAttack1;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
+	UAnimMontage* AltAttack2;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
+	UAnimMontage* AltAttack3;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
 	UAnimMontage* LightHitReaction;
