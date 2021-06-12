@@ -290,6 +290,7 @@ void APlayerCharacter::SphereTraces(FVector StartLocation, FVector EndLocation, 
 			{
 				HitActorInterface->TakeDamage(PlayerAttackType, this);
 			}
+			HitStun();
 		}
 	}
 }
@@ -303,6 +304,7 @@ void APlayerCharacter::TakeDamage(TEnumAsByte<EPAttackType> AttackType, AActor* 
 	{
 		case Light:
 			PlayAnimMontage(LightHitReaction);
+			
 			break;
 		case Medium:
 			PlayAnimMontage(MediumHitReaction);
@@ -352,6 +354,30 @@ void APlayerCharacter::LockOn()
 	}
 	
 
+}
+
+void APlayerCharacter::HitStun()
+{
+	if (PlayerAttackType == Heavy)
+	{
+		CustomTimeDilation = 0.05;
+		LockedOnCharacter->CustomTimeDilation = 0.05;
+		FTimerHandle Handle;
+		GetWorldTimerManager().SetTimer(Handle, this, &APlayerCharacter::HitStunEnd, 0.3f);
+	}
+	else
+	{
+		CustomTimeDilation = 0.3;
+		LockedOnCharacter->CustomTimeDilation = 0.3;
+		FTimerHandle Handle;
+		GetWorldTimerManager().SetTimer(Handle, this, &APlayerCharacter::HitStunEnd, 0.125);
+	}
+}
+
+void APlayerCharacter::HitStunEnd()
+{
+	CustomTimeDilation = 1;
+	LockedOnCharacter->CustomTimeDilation = 1;
 }
 
 void APlayerCharacter::Tick(float DeltaSeconds)

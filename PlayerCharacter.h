@@ -83,6 +83,10 @@ class MYPROJECT_API APlayerCharacter : public ACharacter, public ICombatInterfac
 	void KnockdownAnimDelay();
 
 	void LockOn();
+
+	void HitStun();
+	void HitStunEnd();
+	
 	AActor* LockedOnCharacter;
 	
 	FTimerHandle KnockdownTimer;
